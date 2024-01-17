@@ -12,3 +12,9 @@ DerivedData/
 *~
 build-docs.log
 .nova/
+dd
+output
+
+###
+
+*build.log

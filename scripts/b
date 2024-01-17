@@ -1,0 +1,3 @@
+#!/bin/bash -xe
+make
+rm -rf ~/work/pg/playground/libgodot.xcframework; cp -R ../libgodot.xcframework ~/work/pg/playground
