@@ -18,3 +18,5 @@ output
 ###
 
 *build.log
+libgodot.xcframework/
+libgodot.xcframework.zip
