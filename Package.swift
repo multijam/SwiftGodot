@@ -117,8 +117,8 @@ targets.append(contentsOf: [
     .binaryTarget(
         name: "libgodot_tests",
         // path: "libgodot.xcframework"
-        url: "https://github.com/multijam/SwiftGodot/releases/download/v0.0.1/libgodot.xcframework.zip",
-        checksum: "3ada2ec668db487dde0c3a7ab4c4a85361f376caadb6b06099b152fcbff59001"
+        url: "https://github.com/multijam/SwiftGodot/releases/download/v0.0.2/libgodot.xcframework.zip",
+        checksum: "ab466581c40c94b50a8272e2c5ecfb195d1cc094fcfe181f00aee5014e06c24a"
     ),
     
     // Base functionality for Godot runtime dependant tests
