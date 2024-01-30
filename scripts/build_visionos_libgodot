@@ -1,0 +1,12 @@
+#!/bin/bash -ex
+
+LIBGODOT=~/work/pg/godot
+
+MODE=release
+
+pushd $LIBGODOT
+./build_visionos $MODE
+popd
+bash -e make-libgodot.framework $LIBGODOT .. $MODE
+
+

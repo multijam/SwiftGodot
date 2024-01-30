@@ -1,10 +1,22 @@
-if test x$2 = x; then
-   echo usage is: make-libgodot.framework GODOT_DIR OUTPUT_DIR
+if test x$3 = x; then
+   echo usage is: make-libgodot.framework GODOT_DIR OUTPUT_DIR debug\|release
    echo provide the base directory to where your LibGodot was built
    exit 1
 fi
 DIR=$1
 ODIR=$2
+MODE=$3
+
+if [ "$MODE" == "debug" ]; then
+   GODOT_BINARY="libgodot.ios.template_debug.dev.arm64.visionos.simulator.a"
+elif [ "$MODE" == "release" ]; then
+   GODOT_BINARY="libgodot.ios.template_release.arm64.visionos.simulator.a"
+else
+   echo Missing 'debug' or 'release' parameter!
+   exit 1
+fi
+
+
 rm -rf $ODIR/libgodot.xcframework
 tmp=/tmp/dir-$$
 mkdir $tmp
@@ -20,5 +32,6 @@ module libgodot {
 }
 EOF
 
-xcodebuild -create-xcframework -library $DIR/bin/libgodot.ios.template_debug.dev.arm64.simulator.a -headers $tmp -output $ODIR/libgodot.xcframework
+
+xcodebuild -create-xcframework -library $DIR/bin/libgodot.ios.template_debug.dev.arm64.visionos.simulator.a -headers $tmp -output $ODIR/libgodot.xcframework
 rm -rf /tmp/dir-$$
