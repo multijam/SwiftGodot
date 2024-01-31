@@ -2,10 +2,11 @@
 
 LIBGODOT=~/work/pg/godot
 
-MODE=release
+MODE=debug
 
 pushd $LIBGODOT
-./build_visionos $MODE
+./build_visionos $MODE visionos_simulator
+./build_visionos $MODE visionos
 popd
 bash -e make-libgodot.framework $LIBGODOT .. $MODE
 
