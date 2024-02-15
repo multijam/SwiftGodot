@@ -2,7 +2,7 @@
 
 LIBGODOT=~/work/pg/godot
 
-MODE=debug
+MODE=release
 
 pushd $LIBGODOT
 ./build_visionos $MODE visionos_simulator
@@ -12,4 +12,4 @@ strip *
 popd
 bash -e make-libgodot.framework $LIBGODOT .. $MODE
 
-
+du -sh $LIBGODOT/../SwiftGodot/libgodot.xcframework
