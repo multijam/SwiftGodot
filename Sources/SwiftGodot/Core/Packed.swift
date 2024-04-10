@@ -44,6 +44,14 @@ extension PackedByteArray {
         }
         return nil
     }
+    
+    /// Returns a new Data object with a copy of the data contained by this PackedByteArray
+    public func asDataNoCopy() -> Data? {
+        if let ptr = gi.packed_byte_array_operator_index(&content, 0) {
+            return Data (bytesNoCopy: ptr, count: Int (size()), deallocator: .none)
+        }
+        return nil
+    }
 }
 
 extension PackedColorArray {
