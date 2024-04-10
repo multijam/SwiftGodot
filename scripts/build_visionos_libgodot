@@ -8,7 +8,7 @@ pushd $LIBGODOT
 ./build_visionos $MODE visionos_simulator
 ./build_visionos $MODE visionos
 cd bin
-strip *
+strip *.template_release.*.a
 popd
 bash -e make-libgodot.framework $LIBGODOT .. $MODE
 
