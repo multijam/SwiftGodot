@@ -434,7 +434,7 @@ func generateBuiltinMethods (_ p: Printer,
                 p ("var result = Variant.zero")
                 p ("if Self.keyed_checker (&content, &keyCopy.content) != 0") {
                     p ("Self.keyed_getter (&content, &keyCopy.content, &result)")
-                    p ("return Variant (fromContent: result)")
+                    p ("return Variant (fromContentPtr: &result)")
                 }
                 p ("else") {
                     p ("return nil")
@@ -731,7 +731,7 @@ func generateBuiltinClasses (values: [JGodotBuiltinClass], outputDir: String?) a
         case "int", "float", "bool":
             break
         default:
-            let p: Printer = await PrinterFactory.shared.initPrinter()
+            let p: Printer = await PrinterFactory.shared.initPrinter(bc.name)
             p.preamble()
             mapStringToSwift = bc.name != "String"
             generateBuiltinClass (p: p, bc)

@@ -55,7 +55,6 @@ class GodotMacroProcessor {
         
         let className: String
         let hintStr: String
-        let usage = propType == ".array" ? ".array" : ".default"
         let hint = propType == ".array" ? ".arrayType" : ".none"
         
         if propType == ".array",
@@ -81,7 +80,7 @@ class GodotMacroProcessor {
         
         // TODO: perhaps for these prop infos that are parameters to functions, we should not bother making them unique
         // and instead share all the Ints, all the Floats and so on.
-        ctor.append ("\tlet \(name) = PropInfo (propertyType: \(propType), propertyName: \"\(parameterName)\", className: StringName(\"\(className)\"), hint: \(hint), hintStr: \"\(hintStr)\", usage: \(usage))\n")
+        ctor.append ("\tlet \(name) = PropInfo (propertyType: \(propType), propertyName: \"\(parameterName)\", className: StringName(\"\(className)\"), hint: \(hint), hintStr: \"\(hintStr)\", usage: .default)\n")
         propertyDeclarations [key] = name
         return name
     }
@@ -108,7 +107,7 @@ class GodotMacroProcessor {
                 godotArrayElementTypeName = gArrayCollectionElementTypeName
             }
             
-            propType = godotTypeToProp (typeName: "Array")
+            propType = godotTypeToProp (typeName: "GArray")
             className = "Array[\(godotArrayElementTypeName)]"
             hintStr = godotArrayElementTypeName
         } else {
@@ -123,11 +122,10 @@ class GodotMacroProcessor {
         }
         
         let name = "prop_\(propertyDeclarations.count)"
-        let usage = propType == ".array" ? ".array" : ".default"
         let hint = propType == ".array" ? ".arrayType" : ".none"
         // TODO: perhaps for these prop infos that are parameters to functions, we should not bother making them unique
         // and instead share all the Ints, all the Floats and so on.
-        ctor.append ("\tlet \(name) = PropInfo (propertyType: \(propType), propertyName: \"\", className: StringName(\"\(className)\"), hint: \(hint), hintStr: \"\(hintStr)\", usage: \(usage))\n")
+        ctor.append ("\tlet \(name) = PropInfo (propertyType: \(propType), propertyName: \"\", className: StringName(\"\(className)\"), hint: \(hint), hintStr: \"\(hintStr)\", usage: .default)\n")
         propertyDeclarations [key] = name
         return name
     }
@@ -242,10 +240,10 @@ class GodotMacroProcessor {
             let getterName = "_mproxy_get_\(varNameWithoutPrefix)"
 
             if let accessors = last.accessorBlock {
-                if accessors.as (CodeBlockSyntax.self) != nil {
+                if CodeBlockSyntax (accessors) != nil {
                     throw MacroError.propertyGetSet
                 }
-                if let block = accessors.as (AccessorBlockSyntax.self) {
+                if let block = AccessorBlockSyntax (accessors) {
                     var hasSet = false
                     var hasGet = false
                     switch block.accessors {
@@ -330,10 +328,10 @@ class GodotMacroProcessor {
             let getterName = "get_\(varNameWithoutPrefix.camelCaseToSnakeCase())"
             
             if let accessors = last.accessorBlock {
-                if accessors.as (CodeBlockSyntax.self) != nil {
+                if CodeBlockSyntax (accessors) != nil {
                     throw MacroError.propertyGetSet
                 }
-                if let block = accessors.as (AccessorBlockSyntax.self) {
+                if let block = AccessorBlockSyntax (accessors) {
                     var hasSet = false
                     var hasGet = false
                     switch block.accessors {
@@ -377,12 +375,12 @@ class GodotMacroProcessor {
             ctor.append (
     """
     let \(pinfo) = PropInfo (
-        propertyType: \(godotTypeToProp(typeName: "Array")),
+        propertyType: \(godotTypeToProp(typeName: "GArray")),
         propertyName: "\(varNameWithPrefix.camelCaseToSnakeCase())",
         className: StringName("\(godotArrayTypeName)"),
         hint: .arrayType,
         hintStr: "\(godotArrayElementTypeName)",
-        usage: .array)\n
+        usage: .default)\n
     """)
             
             ctor.append("\tclassInfo.registerMethod (name: \"\(getterName)\", flags: .default, returnValue: \(pinfo), arguments: [], function: \(className).\(proxyGetterName))\n")
@@ -604,10 +602,8 @@ private extension MacroExpansionDeclSyntax {
     }
     
     var exportGroupPrefix: String? {
-        guard isExportGroup, arguments.count == 2 else { return nil }
-        return arguments
-            .last?
-            .as(LabeledExprSyntax.self)?
+        guard isExportGroup, arguments.count == 2, let argument = arguments.last else { return nil }
+        return LabeledExprSyntax (argument)?
             .expression
             .as(StringLiteralExprSyntax.self)?
             .segments
@@ -618,10 +614,8 @@ private extension MacroExpansionDeclSyntax {
     }
     
     var exportGroupName: String? {
-        guard isExportGroup, arguments.count >= 1 else { return nil }
-        return arguments
-            .first?
-            .as(LabeledExprSyntax.self)?
+        guard isExportGroup, arguments.count >= 1, let argument = arguments.first else { return nil }
+        return LabeledExprSyntax (argument)?
             .expression
             .as(StringLiteralExprSyntax.self)?
             .segments
@@ -632,10 +626,8 @@ private extension MacroExpansionDeclSyntax {
     }
     
     var exportSubgroupPrefix: String? {
-        guard isExportSubgroup, arguments.count == 2 else { return nil }
-        return arguments
-            .last?
-            .as(LabeledExprSyntax.self)?
+        guard isExportSubgroup, arguments.count == 2, let argument = arguments.last else { return nil }
+        return LabeledExprSyntax (argument)?
             .expression
             .as(StringLiteralExprSyntax.self)?
             .segments
@@ -646,10 +638,8 @@ private extension MacroExpansionDeclSyntax {
     }
     
     var exportSubgroupName: String? {
-        guard isExportSubgroup, arguments.count >= 1 else { return nil }
-        return arguments
-            .first?
-            .as(LabeledExprSyntax.self)?
+        guard isExportSubgroup, arguments.count >= 1, let argument = arguments.first else { return nil }
+        return LabeledExprSyntax (argument)?
             .expression
             .as(StringLiteralExprSyntax.self)?
             .segments

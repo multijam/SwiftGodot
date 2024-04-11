@@ -1,13 +1,12 @@
-import Foundation
 
 extension BinaryFloatingPoint {
-    /// Convert given degrees value to radians.
+    /// Converts this floating point value assumed to be in degrees to radians.
     public var degreesToRadians: Self {
         return self / 180 * .pi
     }
     
-    /// Convert given radians value to degrees.
-    public var radiansToDegreess: Self {
+    /// Convert this floating point value assumed to be in radians to degrees.
+    public var radiansToDegrees: Self {
         return self * 180 / .pi
     }
 }

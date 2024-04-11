@@ -7,6 +7,11 @@
 
 @_implementationOnly import GDExtension
 
+/// If your application is crashing due to the Variant leak fixes, please
+/// enable this flag, and provide me with a test case, so I can find that
+/// pesky scenario.
+public var experimentalDisableVariantUnref = false
+
 /// Variant objects box various Godot Objects, you create them with one of the
 /// constructors, and you can retrieve the contents using the various extension
 /// constructors that are declared on the various types that are wrapped.
@@ -62,15 +67,23 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
     var content: ContentType = (0, 0, 0)
     static var zero: ContentType = (0, 0, 0)
     
-    /// Initializes from the raw contents of another Variant
+    /// Initializes from the raw contents of another Variant, this will make a copy of the variant contents
     init (fromContent: ContentType) {
-        content = fromContent
+        var copy = fromContent
+        gi.variant_new_copy (&content, &copy)
     }
-    
+
+    /// Initializes from the raw contents of another Variant, this will make a copy of the variant contents
+    init (fromContentPtr: inout ContentType) {
+        gi.variant_new_copy (&content, &fromContentPtr)
+    }
+
     deinit {
-        //gi.variant_destroy (&content)
+        if experimentalDisableVariantUnref { return }
+        gi.variant_destroy (&content)
     }
     
+    /// Creates an empty Variant, that represents the Godot type `nil`
     public init () {
         withUnsafeMutablePointer(to: &content) { ptr in
             gi.variant_new_nil (ptr)
@@ -104,40 +117,13 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
         self.init(representable: value.toVariantRepresentable())
     }
     
-    convenience public init<T: VariantStorable>(
-        _ value: T
-    ) where T.Representable: ContentTypeStoring & VariantRepresentable {
-        self.init(representable: value.toVariantRepresentable())
-    }
-    
-    private init<T: VariantRepresentable>(representable value: T) where T: ContentTypeStoring {
-        let godotType = T.godotType
-        
-        var mutableValue: T.ContentType
-        mutableValue = value.content
-        
-        withUnsafeMutablePointer(to: &content) { selfPtr in
-            withUnsafeMutablePointer(to: &mutableValue) { ptr in
-                Variant.fromTypeMap [Int (godotType.rawValue)] (selfPtr, ptr)
-            }
-        }
-    }
-    
     private init<T: VariantRepresentable>(representable value: T) {
         let godotType = T.godotType
         
         withUnsafeMutablePointer(to: &content) { selfPtr in
-            if let object = value as? Object {
-                var mutableValue = object.handle
-                withUnsafeMutablePointer(to: &mutableValue) { ptr in
-                    Variant.fromTypeMap [Int (godotType.rawValue)] (selfPtr, ptr)
-                }
-            } else {
-                var mutableValue = value
-                
-                withUnsafeMutablePointer(to: &mutableValue) { ptr in
-                    Variant.fromTypeMap [Int (godotType.rawValue)] (selfPtr, ptr)
-                }
+            var mutableValue = value.content
+            withUnsafeMutablePointer(to: &mutableValue) { ptr in
+                Variant.fromTypeMap [Int (godotType.rawValue)] (selfPtr, ptr)
             }
         }
     }
@@ -177,6 +163,10 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
             return nil
         }
         let ret: T? = lookupObject(nativeHandle: value)
+        if let rc = ret as? RefCounted {
+            // When we pull out a refcounted out of a Variant, take a reference
+            rc.reference ()
+        }
         return ret
     }
     
@@ -270,5 +260,15 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
 
             gi.variant_set_indexed (&copy_content, Int64(index), &newV, &valid, &oob)
         }
+    }
+    
+    
+    /// Gets the name of a Variant type.
+    public static func typeName (_ type: GType) -> String {
+        var res = GStringRaw()
+        gi.variant_get_type_name (GDExtensionVariantType (GDExtensionVariantType.RawValue(type.rawValue)), &res.content)
+        let ret = GString.stringFromGStringPtr(ptr: &res.content)
+        GString.destructor (&res.content)
+        return ret ?? ""
     }
 }

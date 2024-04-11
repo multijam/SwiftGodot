@@ -6,9 +6,8 @@
 //
 
 import XCTest
-import SwiftGodot
+@testable import SwiftGodot
 
-@MainActor
 open class GodotTestCase: XCTestCase {
     
     private static var testSuites: [XCTestSuite] = []
@@ -42,7 +41,21 @@ open class GodotTestCase: XCTestCase {
         }
     }
     
-    open class func godotSetUp () {}
+    open class var godotSubclasses: [Wrapped.Type] {
+        return []
+    }
+    
+    open class func godotSetUp () {
+        for subclass in godotSubclasses {
+            register (type: subclass)
+        }
+    }
+    
+    open class func godotTearDown () {
+        for subclass in godotSubclasses {
+            unregister (type: subclass)
+        }
+    }
     
     override open class func setUp () {
         if GodotRuntime.isRunning {
@@ -50,12 +63,33 @@ open class GodotTestCase: XCTestCase {
         }
     }
     
-    open class func godotTearDown () {}
-    
     override open class func tearDown () {
         if GodotRuntime.isRunning {
             godotTearDown ()
         }
+    }
+    
+    override open func tearDown () async throws {
+        // Cleaning up test objects
+        let liveObjects: [Wrapped] = Array (liveFrameworkObjects.values) + Array (liveSubtypedObjects.values)
+        for liveObject in liveObjects {
+            switch liveObject {
+            case let node as Node:
+                node.queueFree ()
+            case let refCounted as RefCounted:
+                refCounted._exp_unref ()
+            case let object as Object:
+                _ = object.call (method: "free")
+            default:
+                print ("Unable to free \(liveObject)")
+            }
+        }
+        liveFrameworkObjects.removeAll ()
+        liveSubtypedObjects.removeAll ()
+        
+        // Waiting for queueFree to take effect
+        let scene = try GodotRuntime.getScene ()
+        await scene.processFrame.emitted
     }
     
 }

@@ -10,7 +10,7 @@ import ExtensionApi
 
 var args = CommandLine.arguments
 
-let jsonFile = args.count > 1 ? args [1] : "/Users/miguel/cvs/godot-master/extension_api.json"
+let jsonFile = args.count > 1 ? args [1] : "/Users/miguel/cvs/SwiftGodot/Sources/ExtensionApi/extension_api.json"
 var generatorOutput = args.count > 2 ? args [2] : "/Users/miguel/cvs/SwiftGodot-DEBUG"
 var docRoot =  args.count > 3 ? args [3] : "/Users/miguel/cvs/godot-master/doc"
 let outputDir = args.count > 2 ? args [2] : generatorOutput
@@ -27,7 +27,7 @@ if args.count < 2 {
     print ("Running with Miguel's testing defaults")
 }
 
-let jsonData = try! Data(contentsOf: URL(fileURLWithPath: jsonFile))
+let jsonData = try! Data(url: URL(fileURLWithPath: jsonFile))
 let jsonApi = try! JSONDecoder().decode(JGodotExtensionAPI.self, from: jsonData)
 
 // Determines whether a built-in type is defined as a structure, this means:
@@ -115,7 +115,7 @@ if singleFile {
 
 let semaphore = DispatchSemaphore(value: 0)
 let _ = Task {
-    let coreDefPrinter = await PrinterFactory.shared.initPrinter()
+    let coreDefPrinter = await PrinterFactory.shared.initPrinter("core-defs")
     coreDefPrinter.preamble()
     generateEnums(coreDefPrinter, cdef: nil, values: jsonApi.globalEnums, prefix: "")
     await generateBuiltinClasses(values: jsonApi.builtinClasses, outputDir: generatedBuiltinDir)

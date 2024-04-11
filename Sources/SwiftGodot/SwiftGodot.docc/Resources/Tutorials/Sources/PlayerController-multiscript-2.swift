@@ -5,7 +5,6 @@
 //  Created by Marquis Kurt on 7/19/23.
 //
 
-import Foundation
 import SwiftGodot
 
 @Godot
@@ -27,7 +26,7 @@ class PlayerController: CharacterBody2D {
         if movementVector != .zero {
             let acceleratedVector = Vector2(x: acceleration, y: acceleration)
             let acceleratedMovement = movementVector * acceleratedVector
-            self.velocity = acceleratedMovement.limitLength(length: speed)
+            self.velocity = acceleratedMovement.limitLength(speed)
         } else {
             velocity = velocity.moveToward(to: .zero, delta: friction)
         }

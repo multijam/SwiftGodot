@@ -102,7 +102,7 @@ class SomeNode: Node {
             className: StringName("Array[String]"),
             hint: .arrayType,
             hintStr: "String",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_greetings", flags: .default, returnValue: _pgreetings, arguments: [], function: SomeNode._mproxy_get_greetings)
     	classInfo.registerMethod (name: "set_greetings", flags: .default, returnValue: nil, arguments: [_pgreetings], function: SomeNode._mproxy_set_greetings)
     	classInfo.registerProperty (_pgreetings, getter: "get_greetings", setter: "set_greetings")
@@ -211,6 +211,62 @@ func _mproxy_set_greetings(args: [Variant]) -> Variant? {
 		)
 	}
 	
+    func testExportGArray() {
+        assertMacroExpansion(
+"""
+@Godot
+class SomeNode: Node {
+    @Export var someArray: GArray = GArray()
+}
+""",
+            expandedSource:
+"""
+
+class SomeNode: Node {
+    var someArray: GArray = GArray()
+
+    func _mproxy_set_someArray (args: [Variant]) -> Variant? {
+    	guard let arg = args.first else {
+    		return nil
+    	}
+    	if let value = GArray (arg) {
+    		self.someArray = value
+    	} else {
+    		GD.printErr ("Unable to set `someArray` value: ", arg)
+    	}
+    	return nil
+    }
+
+    func _mproxy_get_someArray (args: [Variant]) -> Variant? {
+        return Variant (someArray)
+    }
+
+    override open class var classInitializer: Void {
+        let _ = super.classInitializer
+        return _initializeClass
+    }
+
+    private static var _initializeClass: Void = {
+        let className = StringName("SomeNode")
+        assert(ClassDB.classExists(class: className))
+        let classInfo = ClassInfo<SomeNode> (name: className)
+        let _psomeArray = PropInfo (
+            propertyType: .array,
+            propertyName: "someArray",
+            className: className,
+            hint: .none,
+            hintStr: "",
+            usage: .default)
+    	classInfo.registerMethod (name: "_mproxy_get_someArray", flags: .default, returnValue: _psomeArray, arguments: [], function: SomeNode._mproxy_get_someArray)
+    	classInfo.registerMethod (name: "_mproxy_set_someArray", flags: .default, returnValue: nil, arguments: [_psomeArray], function: SomeNode._mproxy_set_someArray)
+    	classInfo.registerProperty (_psomeArray, getter: "_mproxy_get_someArray", setter: "_mproxy_set_someArray")
+    } ()
+}
+""",
+            macros: testMacros
+        )
+    }
+    
 	func testExportArrayIntGodotMacro() {
 		assertMacroExpansion(
 """
@@ -255,7 +311,7 @@ class SomeNode: Node {
             className: StringName("Array[int]"),
             hint: .arrayType,
             hintStr: "int",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_some_numbers", flags: .default, returnValue: _psomeNumbers, arguments: [], function: SomeNode._mproxy_get_someNumbers)
     	classInfo.registerMethod (name: "set_some_numbers", flags: .default, returnValue: nil, arguments: [_psomeNumbers], function: SomeNode._mproxy_set_someNumbers)
     	classInfo.registerProperty (_psomeNumbers, getter: "get_some_numbers", setter: "set_some_numbers")
@@ -327,7 +383,7 @@ class SomeNode: Node {
             className: StringName("Array[int]"),
             hint: .arrayType,
             hintStr: "int",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_some_numbers", flags: .default, returnValue: _psomeNumbers, arguments: [], function: SomeNode._mproxy_get_someNumbers)
     	classInfo.registerMethod (name: "set_some_numbers", flags: .default, returnValue: nil, arguments: [_psomeNumbers], function: SomeNode._mproxy_set_someNumbers)
     	classInfo.registerProperty (_psomeNumbers, getter: "get_some_numbers", setter: "set_some_numbers")
@@ -337,7 +393,7 @@ class SomeNode: Node {
             className: StringName("Array[int]"),
             hint: .arrayType,
             hintStr: "int",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_some_other_numbers", flags: .default, returnValue: _psomeOtherNumbers, arguments: [], function: SomeNode._mproxy_get_someOtherNumbers)
     	classInfo.registerMethod (name: "set_some_other_numbers", flags: .default, returnValue: nil, arguments: [_psomeOtherNumbers], function: SomeNode._mproxy_set_someOtherNumbers)
     	classInfo.registerProperty (_psomeOtherNumbers, getter: "get_some_other_numbers", setter: "set_some_other_numbers")
@@ -411,7 +467,7 @@ class ArrayTest: Node {
             className: StringName("Array[String]"),
             hint: .arrayType,
             hintStr: "String",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_first_names", flags: .default, returnValue: _pfirstNames, arguments: [], function: ArrayTest._mproxy_get_firstNames)
     	classInfo.registerMethod (name: "set_first_names", flags: .default, returnValue: nil, arguments: [_pfirstNames], function: ArrayTest._mproxy_set_firstNames)
     	classInfo.registerProperty (_pfirstNames, getter: "get_first_names", setter: "set_first_names")
@@ -421,7 +477,7 @@ class ArrayTest: Node {
             className: StringName("Array[String]"),
             hint: .arrayType,
             hintStr: "String",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_last_names", flags: .default, returnValue: _plastNames, arguments: [], function: ArrayTest._mproxy_get_lastNames)
     	classInfo.registerMethod (name: "set_last_names", flags: .default, returnValue: nil, arguments: [_plastNames], function: ArrayTest._mproxy_set_lastNames)
     	classInfo.registerProperty (_plastNames, getter: "get_last_names", setter: "set_last_names")
@@ -504,7 +560,7 @@ class SomeNode: Node {
             className: StringName("Array[Node3D]"),
             hint: .arrayType,
             hintStr: "Node3D",
-            usage: .array)
+            usage: .default)
     	classInfo.registerMethod (name: "get_greetings", flags: .default, returnValue: _pgreetings, arguments: [], function: SomeNode._mproxy_get_greetings)
     	classInfo.registerMethod (name: "set_greetings", flags: .default, returnValue: nil, arguments: [_pgreetings], function: SomeNode._mproxy_set_greetings)
     	classInfo.registerProperty (_pgreetings, getter: "get_greetings", setter: "set_greetings")

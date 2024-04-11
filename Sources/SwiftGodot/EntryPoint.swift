@@ -127,6 +127,7 @@ struct GodotInterface {
     let object_get_class_name: GDExtensionInterfaceObjectGetClassName
     
     let object_method_bind_ptrcall: GDExtensionInterfaceObjectMethodBindPtrcall
+    let object_destroy: GDExtensionInterfaceObjectDestroy
     
     // @convention(c) (GDExtensionMethodBindPtr?, GDExtensionObjectPtr?, UnsafePointer<GDExtensionConstTypePtr?>?, GDExtensionTypePtr?) -> Void
     @inline(__always)
@@ -161,6 +162,7 @@ struct GodotInterface {
     let variant_hash: GDExtensionInterfaceVariantHash
     let variant_destroy: GDExtensionInterfaceVariantDestroy
     let variant_get_type: GDExtensionInterfaceVariantGetType
+    let variant_get_type_name: GDExtensionInterfaceVariantGetTypeName
     let variant_stringify: GDExtensionInterfaceVariantStringify
     let variant_call: GDExtensionInterfaceVariantCall
     let variant_call_static: GDExtensionInterfaceVariantCallStatic
@@ -245,6 +247,8 @@ func loadGodotInterface (_ godotGetProcAddrPtr: GDExtensionInterfaceGetProcAddre
         object_set_instance_binding: load ("object_set_instance_binding"),
         object_get_class_name: load ("object_get_class_name"),
         object_method_bind_ptrcall: load ("object_method_bind_ptrcall"),
+        object_destroy: load ("object_destroy"),
+        
         global_get_singleton: load ("global_get_singleton"),
         ref_get_object: load ("ref_get_object"),
         object_method_bind_call: load ("object_method_bind_call"),
@@ -255,6 +259,7 @@ func loadGodotInterface (_ godotGetProcAddrPtr: GDExtensionInterfaceGetProcAddre
         variant_hash: load ("variant_hash"),
         variant_destroy: load ("variant_destroy"),
         variant_get_type: load ("variant_get_type"),
+        variant_get_type_name: load ("variant_get_type_name"),
         variant_stringify: load ("variant_stringify"),
         variant_call: load ("variant_call"),
         variant_call_static: load ("variant_call_static"),

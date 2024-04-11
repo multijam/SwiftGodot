@@ -105,6 +105,15 @@ this:
 @Export var health_reload_speed = 3
 ```
 
+Groups cannot be nested, use #exportSubgroup to create subgroups within a group.
+
+```swift
+#exportSubgroup("Extra Properties")
+#export var string = ""
+#export var flag = false
+```
+
+
 ### Customizing the Exported Value
 
 You can pass a ``PropertyHint`` parameter to the Export attribute, along with additional 
@@ -237,6 +246,17 @@ public override func _ready()
 }
 ```
 
+If you find yourself that you do not want to provide manual get/set properties
+in your export, and want to have an optional for one of the Object types, you 
+can use something like this:
+
+```swift
+@Export(.nodeType, "Camera3D")
+var camera: Camera3D? = nil
+```
+
+The parameter to `.nodeType` needs to match the type of the object.
+
 ### Resources
 
 ```
@@ -260,5 +280,11 @@ Custom resource classes can also be used, see Swift global classes.
 It must be noted that even if the script is not being run while in the editor, the exported 
 properties are still editable. This can be used in conjunction with a script in "tool" mode.
 
+### Arrays
 
+To surface arrays in Godot, use a strong type for it, for example:
 
+```
+@Export
+var myResources: VariantCollection<Resource>
+```
