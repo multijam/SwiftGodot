@@ -12,4 +12,8 @@ strip *.template_release.*.a
 popd
 bash -e make-libgodot.framework $LIBGODOT .. $MODE
 
-du -sh $LIBGODOT/../SwiftGodot/libgodot.xcframework
+OUTPUT=$LIBGODOT/../SwiftGodot/libgodot.xcframework
+
+du -sh "$OUTPUT"
+
+swift package compute-checksum "$OUTPUT"
