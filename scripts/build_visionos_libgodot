@@ -16,4 +16,5 @@ OUTPUT=$LIBGODOT/../SwiftGodot/libgodot.xcframework
 
 du -sh "$OUTPUT"
 
-swift package compute-checksum "$OUTPUT"
+# !!! INSERT ditto command here
+# swift package compute-checksum "$OUTPUT"
