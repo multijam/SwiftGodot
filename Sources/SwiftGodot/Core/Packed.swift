@@ -123,6 +123,12 @@ extension PackedColorArray {
 }
 
 extension PackedFloat32Array {
+    public func bufPtr() -> UnsafeBufferPointer<Float32> {
+        let ptr = gi.packed_float32_array_operator_index_const(&content, 0)
+        return .init(start: ptr!, count: count)
+    }
+
+    
     /// Accesses a specific element in the ``PackedFloat32Array``
     public subscript (index: Int) -> Float {
         get {
@@ -180,6 +186,11 @@ extension PackedFloat64Array {
 }
 
 extension PackedInt32Array {
+    public func bufPtr() -> UnsafeBufferPointer<Int32> {
+        let ptr = gi.packed_int32_array_operator_index_const(&content, 0)
+        return .init(start: ptr!, count: count)
+    }
+
     /// Accesses a specific element in the ``PackedInt32Array``
     public subscript (index: Int) -> Int32 {
         get {
@@ -236,6 +247,11 @@ extension PackedInt64Array {
 }
 
 extension PackedVector2Array {
+    public func bufPtr() -> UnsafeBufferPointer<Vector2> {
+        let ptr = gi.packed_vector2_array_operator_index_const(&content, 0)
+        return .init(start: ptr!.assumingMemoryBound(to: Vector2.self), count: count)
+    }
+    
     /// Accesses a specific element in the ``PackedVector2Array``
     public subscript (index: Int) -> Vector2 {
         get {
@@ -249,6 +265,11 @@ extension PackedVector2Array {
 }
 
 extension PackedVector3Array {
+    public func bufPtr() -> UnsafeBufferPointer<Vector3> {
+        let ptr = gi.packed_vector3_array_operator_index_const(&content, 0)
+        return .init(start: ptr!.assumingMemoryBound(to: Vector3.self), count: count)
+    }
+    
     /// Accesses a specific element in the ``PackedVector3Array``
     public subscript (index: Int) -> Vector3 {
         get {
