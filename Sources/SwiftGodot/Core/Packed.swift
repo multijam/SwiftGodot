@@ -127,7 +127,6 @@ extension PackedFloat32Array {
         let ptr = gi.packed_float32_array_operator_index_const(&content, 0)
         return .init(start: ptr!, count: count)
     }
-
     
     /// Accesses a specific element in the ``PackedFloat32Array``
     public subscript (index: Int) -> Float {
@@ -157,6 +156,11 @@ extension PackedFloat32Array {
 }
 
 extension PackedFloat64Array {
+    public func bufPtr() -> UnsafeBufferPointer<Float64> {
+        let ptr = gi.packed_float64_array_operator_index_const(&content, 0)
+        return .init(start: ptr!, count: count)
+    }
+    
     /// Accesses a specific element in the ``PackedFloat64Array``
     public subscript (index: Int) -> Double {
         get {
