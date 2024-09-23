@@ -133,8 +133,7 @@ func generateBuiltinCtors (_ p: Printer,
                     return
                 }
             }
-            let ptrArgs = (m.arguments != nil) ? "&args" : "nil"
-            
+                        
             // I used to have a nicer model, rather than everything having a
             // handle, I had a named handle, like "_godot_string"
             let ptr = isStruct ? "self" : "content"
@@ -154,7 +153,7 @@ func generateBuiltinCtors (_ p: Printer,
                 } else if bc.name == "Transform2D" && m.arguments == nil {
                     p ("self.x = Vector2 (x: 1, y: 0)")
                     p ("self.y = Vector2 (x: 0, y: 1)")
-                    p ("self.origin = Vector2 ()")                    
+                    p ("self.origin = Vector2 ()")
                 } else if bc.name == "Basis" && m.arguments == nil {
                     p ("self.x = Vector3 (x: 1, y: 0, z: 0)")
                     p ("self.y = Vector3 (x: 0, y: 1, z: 0)")
@@ -175,7 +174,7 @@ func generateBuiltinCtors (_ p: Printer,
                     return
                 }
             }
-            var (argPrepare, nestLevel) = generateArgPrepare(m.arguments ?? [], methodHasReturn: false)
+            var (argPrepare, nestLevel, argsRef) = generateArgPrepare(isVararg: false, m.arguments ?? [], methodHasReturn: false)
             if argPrepare != "" {
                 p (argPrepare)
                 if nestLevel > 0 {
@@ -184,7 +183,7 @@ func generateBuiltinCtors (_ p: Printer,
             }
             
             // Call
-            p ("\(typeName).\(ptrName) (&\(ptr), \(ptrArgs))")
+            p ("\(typeName).\(ptrName) (&\(ptr), \(argsRef))")
             
             // Unwrap the nested calls to 'withUnsafePointer'
             while nestLevel > 0 {
@@ -206,6 +205,7 @@ func generateMethodCall (_ p: Printer,
                          methodToCall: String,
                          godotReturnType: String?,
                          isStatic: Bool,
+                         isVararg: Bool,
                          arguments: [JGodotArgument]?,
                          kind: MethodCallKind) {
     let has_return = godotReturnType != nil
@@ -223,14 +223,14 @@ func generateMethodCall (_ p: Printer,
         }
     }
     
-    var (argPrep, nestLevel) = generateArgPrepare(arguments ?? [], methodHasReturn: (godotReturnType ?? "") != "")
+    var (argPrep, nestLevel, argsRef) = generateArgPrepare(isVararg: isVararg, arguments ?? [], methodHasReturn: (godotReturnType ?? "") != "")
     if argPrep != "" {
         p (argPrep)
         if nestLevel > 0 {
             p.indent += nestLevel
         }
     }
-    let ptrArgs = (arguments?.count ?? 0) > 0 ? "&args" : "nil"
+        
     let ptrResult: String
     if has_return {
         let isStruct = isStructMap [godotReturnType ?? ""] ?? false
@@ -244,17 +244,26 @@ func generateMethodCall (_ p: Printer,
     }
     
     // Method calls pass the number of parameters to the method
-    let numberOfArgs = kind == .methodCall ? ", \(arguments?.count ?? 0)" : ""
+    var argCount: String
+    if isVararg {
+        // All the arguments that we accumulated, count dynamically
+        argCount = "Int32(args.count)"
+    } else {
+        // We know statically the number of arguments, harcode that
+        argCount = "\(arguments?.count ?? 0)"
+    }
+    let numberOfArgs = kind == .methodCall ? ", \(argCount)" : ""
     
     if isStatic {
-            p ("\(typeName).\(methodToCall) (nil, \(ptrArgs), \(ptrResult)\(numberOfArgs))")
+            p ("\(typeName).\(methodToCall) (nil, \(argsRef), \(ptrResult)\(numberOfArgs))")
     } else {
         if isStructMap [typeName] ?? false {
-            p ("withUnsafePointer (to: self) { ptr in ")
-            p ("    \(typeName).\(methodToCall) (UnsafeMutableRawPointer (mutating: ptr), \(ptrArgs), \(ptrResult)\(numberOfArgs))")
+            p ("var mutSelfCopy = self")
+            p ("withUnsafeMutablePointer (to: &mutSelfCopy) { ptr in ")
+            p ("    \(typeName).\(methodToCall) (ptr, \(argsRef), \(ptrResult)\(numberOfArgs))")
             p ("}")
         } else {
-            p ("\(typeName).\(methodToCall) (&content, \(ptrArgs), \(ptrResult)\(numberOfArgs))")
+            p ("\(typeName).\(methodToCall) (&content, \(argsRef), \(ptrResult)\(numberOfArgs))")
         }
     }
     if has_return {
@@ -388,16 +397,17 @@ func generateBuiltinMethods (_ p: Printer,
         
         for arg in m.arguments ?? [] {
             var eliminate: String = ""
-            if args.isEmpty, m.name.hasSuffix ("_\(arg.name)") {
-                // if the first argument name matches the last part of the method name, we want
-                // to skip giving it a name.   For example:
-                // addPattern (pattern: xx) becomes addPattern (_ pattern: xx)
+            // Omit first argument label, if necessary
+            if args.isEmpty, shouldOmitFirstArgLabel(typeName: typeName, methodName: m.name, argName: arg.name) {
                 eliminate = "_ "
             }
             if args != "" { args += ", " }
             args += getArgumentDeclaration(arg, eliminate: eliminate, isOptional: false)
         }
-        
+        if m.isVararg {
+            if args != "" { args += ", " }
+            args += "_ arguments: Variant..."
+        }
         doc (p, bc, m.description)
         // Generate the method entry point
         if discardableResultList [bc.name]?.contains(m.name) ?? false && m.returnType != "" {
@@ -413,8 +423,7 @@ func generateBuiltinMethods (_ p: Printer,
             keyword = ""
         }
         p ("public\(keyword) func \(escapeSwift (snakeToCamel(m.name))) (\(args))\(retSig)") {
-            
-            generateMethodCall (p, typeName: typeName, methodToCall: ptrName, godotReturnType: m.returnType, isStatic: m.isStatic, arguments: m.arguments, kind: .methodCall)
+            generateMethodCall (p, typeName: typeName, methodToCall: ptrName, godotReturnType: m.returnType, isStatic: m.isStatic, isVararg: m.isVararg, arguments: m.arguments, kind: .methodCall)
         }
     }
     if bc.isKeyed {
@@ -434,7 +443,7 @@ func generateBuiltinMethods (_ p: Printer,
                 p ("var result = Variant.zero")
                 p ("if Self.keyed_checker (&content, &keyCopy.content) != 0") {
                     p ("Self.keyed_getter (&content, &keyCopy.content, &result)")
-                    p ("return Variant (fromContentPtr: &result)")
+                    p ("return Variant(copying: result)")
                 }
                 p ("else") {
                     p ("return nil")
@@ -508,6 +517,7 @@ func generateBuiltinClasses (values: [JGodotBuiltinClass], outputDir: String?) a
         }
         if bc.name.hasSuffix ("Array") {
             conformances.append ("Collection")
+            conformances.append ("RandomAccessCollection")
         }
         var proto = ""
         if conformances.count > 0 {
@@ -590,9 +600,18 @@ func generateBuiltinClasses (values: [JGodotBuiltinClass], outputDir: String?) a
             }
             if bc.name == "Callable" {
                 p ("/// Creates a Callable instance from a Swift function")
+                p ("/// - Parameter callback: the swift function that receives `Arguments`, and returns a `Variant`")
+                p ("public init(_ callback: @escaping (borrowing Arguments) -> Variant)") {
+                    p ("content = CallableWrapper.callableVariantContent(wrapping: callback)")
+                }
+                
+                p ("/// Creates a Callable instance from a Swift function")
                 p ("/// - Parameter callback: the swift function that receives an array of Variant arguments, and returns an optional Variant")
+                p("""
+                @available(*, deprecated, message: "Use `init(_ callback: @escaping (borrowing Arguments) -> Variant)` instead.")
+                """)
                 p ("public init (_ callback: @escaping ([Variant])->Variant?)") {
-                    p ("content = CallableWrapper.makeCallable (callback)")
+                    p ("content = CallableWrapper.callableVariantContent(wrapping: callback)")
                 }
             }
             if bc.hasDestructor {
@@ -632,6 +651,10 @@ func generateBuiltinClasses (values: [JGodotBuiltinClass], outputDir: String?) a
                         p ("args.append (ptr)")
                         p ("\(typeName).constructor1 (&self.content, &args)")
                     }
+                }
+                p ("// Used to construct objects when the underlying built-in's ref count has already been incremented for me")
+                p ("public required init(alreadyOwnedContent content: ContentType)") {
+                    p ("self.content = content")
                 }
             }
            
@@ -709,6 +732,10 @@ func generateBuiltinClasses (values: [JGodotBuiltinClass], outputDir: String?) a
 
                 p ("public func index(after i: Int) -> Int") {
                     p ("i+1")
+                }
+
+                p ("public func index(before i: Int) -> Int") {
+                    p ("return i-1")
                 }
             }
         }

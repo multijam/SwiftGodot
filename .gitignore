@@ -14,10 +14,12 @@ build-docs.log
 .nova/
 dd
 output
-
-###
-
 *build.log
 libgodot.xcframework/
 libgodot.xcframework.zip
 build/
+\#*
+/libgodot.xcframework/
+Package.resolved
+/.vscode
+.swiftpm/xcode/xcshareddata/xcschemes

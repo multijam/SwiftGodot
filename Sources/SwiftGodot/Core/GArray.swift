@@ -28,7 +28,7 @@ extension GArray {
                 return Variant()
             }
             let ptr = ret.assumingMemoryBound(to: Variant.ContentType.self)
-            return Variant(fromContent: ptr.pointee)
+            return Variant(copying: ptr.pointee)
         }
         set {
             guard let ret = gi.array_operator_index (&content, Int64 (index)) else {
@@ -37,5 +37,10 @@ extension GArray {
             let ptr = ret.assumingMemoryBound(to: Variant.ContentType.self)
             ptr.pointee = newValue.content
         }
+    }
+    
+    @available(*, deprecated, renamed: "append(_:)", message: "This method signature has been deprecated in favor of append(_:)")
+    public func append(value: Variant) {
+        append(value)
     }
 }

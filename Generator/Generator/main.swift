@@ -32,7 +32,12 @@ let jsonApi = try! JSONDecoder().decode(JGodotExtensionAPI.self, from: jsonData)
 
 // Determines whether a built-in type is defined as a structure, this means:
 // that it has fields and does not have a "handle" pointer to the native object
-var isStructMap: [String:Bool] = [:]
+//
+// The map is agumented during the JSON file processing
+var isStructMap: [String:Bool] = [
+    "const void*": true,
+    "AudioFrame*": true
+]
 
 func dropMatchingPrefix (_ enumName: String, _ enumKey: String) -> String {
     let snake = snakeToCamel (enumKey)
@@ -117,11 +122,13 @@ let semaphore = DispatchSemaphore(value: 0)
 let _ = Task {
     let coreDefPrinter = await PrinterFactory.shared.initPrinter("core-defs")
     coreDefPrinter.preamble()
+    generateUnsafePointerHelpers(coreDefPrinter)
     generateEnums(coreDefPrinter, cdef: nil, values: jsonApi.globalEnums, prefix: "")
     await generateBuiltinClasses(values: jsonApi.builtinClasses, outputDir: generatedBuiltinDir)
     await generateUtility(values: jsonApi.utilityFunctions, outputDir: generatedBuiltinDir)
     await generateClasses (values: jsonApi.classes, outputDir: generatedDir)
     generateCtorPointers (coreDefPrinter)
+    generateNativeStructures (coreDefPrinter, values: jsonApi.nativeStructures)
     if let generatedBuiltinDir {
         coreDefPrinter.save (generatedBuiltinDir + "/core-defs.swift")
     }

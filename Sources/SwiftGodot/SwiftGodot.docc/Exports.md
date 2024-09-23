@@ -32,7 +32,7 @@ visible and editable in the editor. This way, artists and game designers can
 modify values that later influence how the program runs. For this, a special export syntax is provided.
 
 Exporting can only be applied to ``Variant``-compatible types.  The Godot
-core-structures and classes, as well as objects that subclass ``GodotObject``.
+core-structures and classes, as well as objects that subclass ``SwiftGodot.Object``.
 
 The `@Export` macro only works in your class definition, and will not work
 on Swift class extensions.
@@ -288,3 +288,31 @@ To surface arrays in Godot, use a strong type for it, for example:
 @Export
 var myResources: VariantCollection<Resource>
 ```
+
+Alternatively, if you want to surface an array of Godot objects, or even your
+own subclasses of those, use `ObjectCollection<YourCustomType>`, for example:
+
+```
+@Export
+var myNodes: ObjectCollection<MySpinnerCube>
+```
+
+### Enumeration Values
+
+To surface enumeration values, use the `@Export(.enum)` marker on your variable,
+and it is important that your enumeration conforms to `CaseIterable` and one of
+the integral types, like this:
+
+```
+enum MyEnum: Int, CaseIterable {
+    case first
+    case second
+}
+
+@Godot
+class Sample: Node {
+    @Export(.enum)
+    var myValue: MyEnum
+}
+```
+

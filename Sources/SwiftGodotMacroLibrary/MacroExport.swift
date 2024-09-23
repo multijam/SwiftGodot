@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  MacroExport.swift
 //  
 //
 //  Created by Miguel de Icaza on 9/25/23.
@@ -15,12 +15,21 @@ import SwiftSyntaxMacros
 public struct GodotExport: PeerMacro {
     
     
-    static func makeGetAccessor (varName: String, isOptional: Bool) -> String {
+    static func makeGetAccessor (varName: String, isOptional: Bool, isEnum: Bool) -> String {
         let name = "_mproxy_get_\(varName)"
+        if isEnum {
+            return
+    """
+    func \(name) (args: borrowing Arguments) -> Variant? {
+        return Variant (\(varName).rawValue)
+    }
+    """
+
+        }
         if isOptional {
             return
     """
-    func \(name) (args: [Variant]) -> Variant? {
+    func \(name) (args: borrowing Arguments) -> Variant? {
         guard let result = \(varName) else { return nil }
         return Variant (result)
     }
@@ -28,18 +37,25 @@ public struct GodotExport: PeerMacro {
         } else {
             return
     """
-    func \(name) (args: [Variant]) -> Variant? {
+    func \(name) (args: borrowing Arguments) -> Variant? {
         return Variant (\(varName))
     }
     """
         }
     }
     
-    static func makeSetAccessor (varName: String, typeName: String, isOptional: Bool) -> String {
+    static func makeSetAccessor (varName: String, typeName: String, isOptional: Bool, isEnum: Bool) -> String {
         let name = "_mproxy_set_\(varName)"
         var body: String = ""
 
-		if typeName == "Variant" {
+        if isEnum {
+            body =
+    """
+        if let iv = Int (args [0]), let ev = \(typeName)(rawValue: numericCast (iv)) {
+            self.\(varName) = ev
+        }
+    """
+        } else if typeName == "Variant" {
 			body = "\(varName) = args [0]"
 		} else if godotVariants [typeName] == nil {
             let optBody = isOptional ? " else { \(varName) = nil }" : ""
@@ -77,7 +93,7 @@ public struct GodotExport: PeerMacro {
     """
             }
         }
-        return "func \(name) (args: [Variant]) -> Variant? {\n\(body)\n\treturn nil\n}"
+        return "func \(name) (args: borrowing Arguments) -> Variant? {\n\(body)\n\treturn nil\n}"
     }
 
     
@@ -113,6 +129,14 @@ public struct GodotExport: PeerMacro {
             throw GodotMacroError.requiresNonOptionalGArrayCollection
         }
         
+        var isEnum = false
+        if case let .argumentList (arguments) = node.arguments, let expression = arguments.first?.expression {
+            isEnum = expression.description.trimmingCharacters(in: .whitespacesAndNewlines) == ".enum"
+        }
+        if isEnum && isOptional {
+            throw GodotMacroError.noSupportForOptionalEnums
+            
+        }
         var results: [DeclSyntax] = []
         
         for singleVar in varDecl.bindings {
@@ -162,8 +186,8 @@ public struct GodotExport: PeerMacro {
                 results.append (DeclSyntax(stringLiteral: makeGArrayCollectionGetProxyAccessor(varName: varName, elementTypeName: elementTypeName)))
                 results.append (DeclSyntax(stringLiteral: makeGArrayCollectionSetProxyAccessor(varName: varName, elementTypeName: elementTypeName)))
             } else if let typeName = type.as(IdentifierTypeSyntax.self)?.name.text {
-                results.append (DeclSyntax(stringLiteral: makeSetAccessor(varName: varName, typeName: typeName, isOptional: isOptional)))
-                results.append (DeclSyntax(stringLiteral: makeGetAccessor(varName: varName, isOptional: isOptional)))
+                results.append (DeclSyntax(stringLiteral: makeSetAccessor(varName: varName, typeName: typeName, isOptional: isOptional, isEnum: isEnum)))
+                results.append (DeclSyntax(stringLiteral: makeGetAccessor(varName: varName, isOptional: isOptional, isEnum: isEnum)))
             }
         }
         
@@ -174,7 +198,7 @@ public struct GodotExport: PeerMacro {
 private extension GodotExport {
     private static func makeGArrayCollectionGetProxyAccessor(varName: String, elementTypeName: String) -> String {
 		"""
-		func _mproxy_get_\(varName)(args: [Variant]) -> Variant? {
+		func _mproxy_get_\(varName)(args: borrowing Arguments) -> Variant? {
 			return Variant(\(varName).array)
 		}
 		"""
@@ -182,7 +206,7 @@ private extension GodotExport {
     
     private static func makeGArrayCollectionSetProxyAccessor(varName: String, elementTypeName: String) -> String {
 		"""
-		func _mproxy_set_\(varName)(args: [Variant]) -> Variant? {
+		func _mproxy_set_\(varName)(args: borrowing Arguments) -> Variant? {
 			guard let arg = args.first,
 				  let gArray = GArray(arg),
 				  gArray.isTyped(),
