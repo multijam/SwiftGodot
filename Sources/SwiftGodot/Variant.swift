@@ -73,6 +73,11 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
             gi.variant_new_copy(&content, src)
         }
     }
+    
+    /// Initializes using `ContentType` and assuming that this `Variant` is sole owner of this content now.
+    init(takingOver other: ContentType) {
+        self.content = other
+    }
 
     deinit {
         if experimentalDisableVariantUnref { return }
@@ -110,6 +115,14 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
     
     convenience public init(_ value: some VariantStorable) {
         self.init(representable: value.toVariantRepresentable())
+    }
+    
+    convenience public init(_ value: (some VariantStorable)?) {
+        if let value {
+            self.init(value)
+        } else {
+            self.init()
+        }
     }
     
     private init<T: VariantRepresentable>(representable value: T) {
@@ -193,17 +206,17 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
                 gi.variant_call(&content, &method.content, ptr, 1, &result, &err)
             }
         } else if arguments.count > 1 {
-            // A temporary allocation containing pointers to internal payloads of argument variants
-            withUnsafeTemporaryAllocation(of: UnsafeRawPointer?.self, capacity: arguments.count) { argPtrsBufer in
+            // A temporary allocation containing pointers to `Variant.ContentType` of marshaled arguments
+            withUnsafeTemporaryAllocation(of: UnsafeRawPointer?.self, capacity: arguments.count) { pArgsBuffer in
                 // We use entire buffer so can initialize every element in the end. It's not
                 // necessary for UnsafeRawPointer and other POD types (which Variant.ContentType also is)
                 // but we'll do it for the sake of correctness
-                defer { argPtrsBufer.deinitialize() }
-                guard let argPtrsPtr = argPtrsBufer.baseAddress else {
+                defer { pArgsBuffer.deinitialize() }
+                guard let pArgs = pArgsBuffer.baseAddress else {
                     fatalError("pargsBuffer.baseAddress is nil")
                 }
                              
-                // A temporary allocation containing internal variant payloads
+                // A temporary allocation containing `Variant.ContentType` of marshaled arguments
                 withUnsafeTemporaryAllocation(of: Variant.ContentType.self, capacity: arguments.count) { contentsBuffer in
                     defer { contentsBuffer.deinitialize() }
                     guard let contentsPtr = contentsBuffer.baseAddress else {
@@ -211,14 +224,14 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
                     }
                     
                     for i in 0..<arguments.count {
-                        // Initialize internal payload at the index copying user-passed argument internal payload
+                        // Copy `content`s of the variadic `Variant`s into `contentBuffer`
                         contentsBuffer.initializeElement(at: i, to: arguments[i].content)
                         
-                        // Initialize pointer at the index to point at respective element in `contentsBuffer`
-                        argPtrsBufer.initializeElement(at: i, to: contentsPtr + i)
+                        // Initialize `pArgs` elements to point at respective contents of `contentsBuffer`
+                        pArgsBuffer.initializeElement(at: i, to: contentsPtr + i)
                     }
                     
-                    gi.variant_call(&content, &method.content, argPtrsPtr, Int64(arguments.count), &result, &err)
+                    gi.variant_call(&content, &method.content, pArgs, Int64(arguments.count), &result, &err)
                 }
             }
         } else {
@@ -229,7 +242,7 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
             return .failure(toCallErrorType(err.error))
         }
         
-        return .success(Variant(copying: result))
+        return .success(Variant(takingOver: result))
     }
     
     /// Errors raised by the variant subscript
@@ -268,7 +281,8 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
             if valid == 0 || oob != 0 {
                 return nil
             }
-            return Variant(copying: _result)
+                        
+            return Variant(takingOver: _result)
         }
         set {
             guard let newValue else {
@@ -285,11 +299,10 @@ public class Variant: Hashable, Equatable, CustomDebugStringConvertible {
     
     
     /// Gets the name of a Variant type.
-    public static func typeName (_ type: GType) -> String {
-        var res = GStringRaw()
+    public static func typeName(_ type: GType) -> String {
+        let res = GString()
         gi.variant_get_type_name (GDExtensionVariantType (GDExtensionVariantType.RawValue(type.rawValue)), &res.content)
         let ret = GString.stringFromGStringPtr(ptr: &res.content)
-        GString.destructor (&res.content)
         return ret ?? ""
     }
 }
