@@ -207,7 +207,8 @@ let package = Package(
     name: "SwiftGodot",
     platforms: [
         .macOS(.v13),
-        .iOS (.v15)
+        .iOS (.v15),
+        .visionOS(.v1)
     ],
     products: products,
     dependencies: [
