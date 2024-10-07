@@ -1,6 +1,8 @@
 if test x$3 = x; then
    echo usage is: make-libgodot.framework GODOT_DIR OUTPUT_DIR debug\|release
    echo provide the base directory to where your LibGodot was built
+   echo the LIPO_DIR is the directory where you have a lipo-ed version of
+   echo libgodot for Mac
    exit 1
 fi
 DIR=$1
