@@ -23,6 +23,7 @@ var products: [Product] = [
             "ExtensionApiJson"
         ]),
     .plugin(name: "CodeGeneratorPlugin", targets: ["CodeGeneratorPlugin"]),
+    .plugin(name: "EntryPointGeneratorPlugin", targets: ["EntryPointGeneratorPlugin"])
 ]
 
 // Macros aren't supported on Windows before 5.9.1 and this sample uses them
@@ -43,6 +44,14 @@ products.append(
 #endif
 
 var targets: [Target] = [
+    .executableTarget(
+        name: "EntryPointGenerator",
+        dependencies: [
+            .product(name: "SwiftSyntax", package: "swift-syntax"),
+            .product(name: "SwiftParser", package: "swift-syntax"),
+            .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        ]
+    ),
     // This contains GDExtension's JSON API data models
     .target(
         name: "ExtensionApi",
@@ -77,6 +86,12 @@ var targets: [Target] = [
             name: "CodeGeneratorPlugin",
             capability: .buildTool(),
             dependencies: ["Generator"]
+        ),
+    
+        .plugin(
+            name: "EntryPointGeneratorPlugin",
+            capability: .buildTool(),
+            dependencies: ["EntryPointGenerator"]
         ),
     
     // This allows the Swift code to call into the Godot bridge API (GDExtension)
@@ -149,7 +164,7 @@ targets.append(contentsOf: [
     // Base functionality for Godot runtime dependant tests
     .target(
         name: "SwiftGodotTestability",
-        dependencies: [
+        dependencies: [            
             "SwiftGodot",
             "libgodot_tests",
             "GDExtension"
@@ -207,6 +222,7 @@ let package = Package(
     ],
     products: products,
     dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.3.0"),
         .package(url: "https://github.com/swiftlang/swift-syntax", from: "510.0.1"),
     ],
