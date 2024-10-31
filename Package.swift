@@ -145,7 +145,7 @@ targets.append(
 /// 3. Use `scripts/make-libgodot.framework` to build an `xcframework` and put it at the root of your SwiftGodot work tree.
 /// 4. Change `#if true` to `#if false` below.
 ///
-#if true
+#if false
 let libgodot_tests = Target.binaryTarget(
     name: "libgodot_tests",
     url: "https://github.com/multijam/SwiftGodot/releases/download/4.3.0/libgodot.xcframework.zip",
